@@ -1,10 +1,18 @@
-FROM node:4-alpine
+FROM node:10-alpine
 
-RUN apk update && apk add make
+# Install bash, make, Python, and other necessary tools
+RUN apk update && apk add --no-cache make bash python3
 
-RUN npm install -g phantomjs-prebuilt
-RUN npm install -g casperjs
+# Install PhantomJS and CasperJS globally
+RUN npm install -g phantomjs-prebuilt --unsafe-perm=true
+RUN npm install -g casperjs --unsafe-perm=true
 
+# Set up the app directory
 RUN mkdir -p /usr/src/app
-
 WORKDIR /usr/src/app
+
+# Ensure CasperJS and Python are in the PATH
+ENV PATH="$PATH:/usr/local/bin"
+
+# Optionally, set Python 3 as the default 'python' command if needed
+RUN ln -sf /usr/bin/python3 /usr/bin/python
