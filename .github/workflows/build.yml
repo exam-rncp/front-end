@@ -6,10 +6,10 @@ on:
       action:
         description: 'Select action'
         required: true
-        default: 'build'
+        default: 'test'
         type: choice
         options:
-          - build
+          - test
           - push
       branch:
         description: 'Select branch'
@@ -21,7 +21,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-test:
+  test:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -38,13 +38,7 @@ jobs:
       - name: Run Unit Tests
         run: make test-front-end
 
-      - name: Build Docker Image
-        id: build
-        run: |
-          chmod +x scripts/build.sh
-          bash scripts/build.sh
-
-  push-image:
+  build-push-image:
     needs: build-test
     runs-on: ubuntu-latest
     permissions:
@@ -59,6 +53,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.branch }}
+
+      - name: Build Docker Image
+        id: build
+        run: |
+          chmod +x scripts/build.sh
+          bash scripts/build.sh
 
       - name: Automatic Tagging of Releases
         id: increment-git-tag
