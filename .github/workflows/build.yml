@@ -1,0 +1,77 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Select action'
+        required: true
+        default: 'build'
+        type: choice
+        options:
+          - build
+          - push
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GROUP: f3lin
+      COMMIT: ${{ github.sha }}
+      REPO: front-end
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Unit Tests
+        run: make test-front-end
+
+      - name: Build Docker Image
+        if: ${{ github.event.inputs.action == 'build' }}
+        id: build
+        run: |
+          chmod +x scripts/build.sh
+          bash scripts/build.sh
+
+  push-image:
+    needs: build-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: ${{ github.event.inputs.action == 'push' }}
+    env:
+      GROUP: f3lin
+      REPO: front-end
+      COMMIT: ${{ github.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Automatic Tagging of Releases
+        id: increment-git-tag
+        run: |
+          chmod +x scripts/git_update_tag.sh
+          bash scripts/git_update_tag.sh -v patch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag Docker Image
+        run: |
+          docker tag ${GROUP}/${REPO}:${COMMIT} ${GROUP}/${REPO}:${{ steps.increment-git-tag.outputs.git-tag }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.GROUP }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Push Docker Image to Docker Hub
+        env:
+          TAG: ${{ steps.increment-git-tag.outputs.git-tag }}
+        run: |
+          docker push ${GROUP}/${REPO}:${TAG}
