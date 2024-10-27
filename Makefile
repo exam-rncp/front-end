@@ -3,24 +3,12 @@ DOCKER_IFLAG := $(if $(GITHUB_ACTIONS),"-i","-it")
 
 .PHONY: test coverage
 
-up: compose test-image server
-# up: compose test-image deps server
-
-down: kill-server kill-compose
 
 dev: clean test-image server
 
 # Brings the backend services up using Docker Compose
 compose:
 	@docker compose -f test/docker-compose.yml up -d
-
-# Installs Node.js project dependencies
-deps:
-	@docker run               \
-		-it                     \
-		--rm                    \
-		-v $$PWD:/usr/src/app   \
-		$(IMAGE) /usr/local/bin/npm install
 
 # Runs the Node.js application in a Docker container
 server:
@@ -44,13 +32,20 @@ test-image:
 	@docker build -t $(IMAGE) -f test/Dockerfile .
 
 # Runs unit tests in Docker
-test: test-image
+test-front-end: test-image
 	@docker run              \
     --rm                   \
     $(DOCKER_IFLAG)         \
     -v $$PWD:/usr/src/app   \
     $(IMAGE) /bin/sh -c "/usr/local/bin/npm install && /usr/local/bin/npm test"
 
+build:
+	chmod +x scripts/build.sh
+	./scripts/build.sh
+
+test-sock-shop: build
+	docker compose up -d
+	
 
 # Runs integration tests in Docker
 e2e: test-image
