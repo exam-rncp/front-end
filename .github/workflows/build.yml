@@ -39,7 +39,6 @@ jobs:
         run: make test-front-end
 
       - name: Build Docker Image
-        if: ${{ github.event.inputs.action == 'build' }}
         id: build
         run: |
           chmod +x scripts/build.sh
