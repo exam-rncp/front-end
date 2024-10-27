@@ -1,9 +1,6 @@
 name: ci
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       action:
@@ -14,6 +11,10 @@ on:
         options:
           - build
           - push
+      branch:
+        description: 'Select branch'
+        required: false
+        default: 'main'
 
 jobs:
   build-test:
@@ -27,6 +28,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
 
       - name: Run Unit Tests
         run: make test-front-end
@@ -51,6 +54,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
 
       - name: Automatic Tagging of Releases
         id: increment-git-tag
