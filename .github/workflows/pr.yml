@@ -1,4 +1,4 @@
-name: Build and Test Front-End Image in Sock-Shop Ecosystem
+name: Pull request
 
 on:
   pull_request:
