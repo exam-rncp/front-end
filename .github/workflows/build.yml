@@ -11,10 +11,6 @@ on:
         options:
           - test
           - push
-      branch:
-        description: 'Select branch'
-        required: false
-        default: 'main'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
@@ -32,8 +28,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
 
       - name: Run Unit Tests
         run: make test-front-end
@@ -51,9 +45,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
-      
+
       - name: Build Docker Image
         id: build
         run: |
