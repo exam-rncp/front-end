@@ -1,0 +1,91 @@
+name: Build and Test Front-End Image in Sock-Shop Ecosystem
+
+on:
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build and Test Front-End Image
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+      pull-requests: write
+    env:
+      GROUP: f3lin 
+      COMMIT: ${{ github.sha }}
+      REPO: front-end
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+
+      - name: Unit Tests
+        run: make test-front-end
+
+      - name: Test sock-shop app
+        id: docker-compose
+        run: make test-sock-shop
+
+      - name: Wait for Container Termination
+        id: wait
+        if: steps.docker-compose.outcome == 'success'
+        run: |
+          while [ "$(docker inspect -f '{{.State.Running}}' front-end-user-sim-1)" == "true" ]; do
+            echo "Waiting for front-end-user-sim-1 to terminate..."
+            sleep 10
+          done
+          echo "Container front-end-user-sim-1 has terminated."
+
+      - name: Wait for Container Termination
+        if: steps.docker-compose.outcome == 'success'
+        run: |
+          while [ "$(docker inspect -f '{{.State.Running}}' front-end-user-sim-1)" == "true" ]; do
+            echo "Waiting for front-end-user-sim-1 to terminate..."
+            sleep 10
+          done
+          echo "Container front-end-user-sim-1 has terminated."
+
+      - name: Get Logs from Load-Test Container
+        id: logs
+        if: steps.docker-compose.outcome == 'success'
+        run: |
+          docker logs -f front-end-user-sim-1 &> logs.txt || true
+
+      - name: Post Logs as PR Comment
+        if: steps.docker-compose.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            let logOutput;
+            try {
+              logOutput = fs.readFileSync('logs.txt', 'utf8');
+            } catch (error) {
+              logOutput = 'Unable to read logs.';
+            }
+            const output = `#### Docker logs user-sim 📖\`${{ steps.docker-compose.outcome }}\`
+            <details><summary>Show Logs</summary>
+
+            \`\`\`\n
+            ${logOutput}
+            \`\`\`
+
+            </details>
+
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+
+      - name: Docker Logs Status
+        if: steps.logs.outcome == 'failure'
+        run: exit 1
