@@ -39,7 +39,7 @@ jobs:
         run: make test-front-end
 
   build-push-image:
-    needs: build-test
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.branch }}
-
+      
       - name: Build Docker Image
         id: build
         run: |
